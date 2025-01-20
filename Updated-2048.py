@@ -1,131 +1,159 @@
-import pygame
+import tkinter as tk
 import random
-import time
+import pygame
 
-# Initialize Pygame
-pygame.init()
 
-# Set up display
-WIDTH, HEIGHT = 600, 600
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Memory Matching Game")
-font = pygame.font.Font(None, 74)
+class Game2048:
+    def __init__(self):
+        # Initialize Pygame for music
+        pygame.mixer.init()
+        pygame.mixer.music.load("Memories-of-Spring(chosic.com).mp3")  # Make sure to have a lo-fi music file
+        pygame.mixer.music.play(-1, 0.0)  # Loop the music infinitely
 
-# Colors
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GREEN = (0, 255, 0)
-RED = (255, 0, 0)
+        self.window = tk.Tk()
+        self.window.title("2048 Game")
+        self.board = [[0] * 4 for _ in range(4)]
+        self.grid_cells = []
+        self.score = 0
+        self.game_over_label = None  # Store the Game Over label reference
 
-# Card settings
-CARD_SIZE = 100
-MARGIN = 20
+        self.initialize_ui()
+        self.add_new_tile()
+        self.add_new_tile()
+        self.update_ui()
 
-# Create card positions
-def create_card_positions():
-    positions = []
-    for i in range(4):
-        for j in range(4):
-            x = MARGIN + j * (CARD_SIZE + MARGIN)
-            y = MARGIN + i * (CARD_SIZE + MARGIN)
-            positions.append((x, y))
-    return positions
+        self.window.bind("<Key>", self.handle_keypress)
+        self.window.mainloop()
 
-positions = create_card_positions()
+    def initialize_ui(self):
+        # Main frame for the game
+        self.main_frame = tk.Frame(self.window, bg="black", bd=5)
+        self.main_frame.grid(row=0, column=0, pady=10, padx=10)
 
-# Generate pairs
-def generate_pairs():
-    symbols = list(range(8)) * 2
-    random.shuffle(symbols)
-    return symbols
+        # Game grid cells
+        for r in range(4):
+            row_cells = []
+            for c in range(4):
+                cell = tk.Label(self.main_frame, text="", bg="lightgrey", font=("Helvetica", 24), width=4, height=2,
+                                borderwidth=2, relief="groove")
+                cell.grid(row=r, column=c, padx=5, pady=5)
+                row_cells.append(cell)
+            self.grid_cells.append(row_cells)
 
-pairs = generate_pairs()
+        # Score label
+        self.score_label = tk.Label(self.window, text=f"Score: {self.score}", font=("Helvetica", 16))
+        self.score_label.grid(row=1, column=0, pady=10)
 
-# Card class
-class Card:
-    def __init__(self, symbol, position):
-        self.symbol = symbol
-        self.position = position
-        self.rect = pygame.Rect(position[0], position[1], CARD_SIZE, CARD_SIZE)
-        self.revealed = False
-        self.matched = False
+    def add_new_tile(self):
+        empty_cells = [(r, c) for r in range(4) for c in range(4) if self.board[r][c] == 0]
+        if empty_cells:
+            r, c = random.choice(empty_cells)
+            self.board[r][c] = 2 if random.random() < 0.9 else 4
 
-    def draw(self, screen):
-        if self.revealed or self.matched:
-            pygame.draw.rect(screen, WHITE, self.rect)
-            text = font.render(str(self.symbol), True, BLACK)
-            screen.blit(text, (self.position[0] + 35, self.position[1] + 25))
-        else:
-            pygame.draw.rect(screen, GREEN, self.rect)
+    def update_ui(self):
+        for r in range(4):
+            for c in range(4):
+                value = self.board[r][c]
+                self.grid_cells[r][c].config(text=f"{value}" if value != 0 else "", bg=self.get_cell_color(value))
+        self.score_label.config(text=f"Score: {self.score}")
 
-# Create card objects
-cards = [Card(pairs[i], positions[i]) for i in range(16)]
+    def get_cell_color(self, value):
+        colors = {
+            0: "lightgrey",
+            2: "#eee4da",
+            4: "#ede0c8",
+            8: "#f2b179",
+            16: "#f59563",
+            32: "#f67c5f",
+            64: "#f65e3b",
+            128: "#edcf72",
+            256: "#edcc61",
+            512: "#edc850",
+            1024: "#edc53f",
+            2048: "#edc22e",
+        }
+        return colors.get(value, "#3c3a32")
 
-# Game variables
-revealed_cards = []  # Store the two revealed cards
-matches = 0
-attempts = 0
-running = True
-clock = pygame.time.Clock()
+    def handle_keypress(self, event):
+        direction = event.keysym
+        if direction in ("Up", "Down", "Left", "Right"):
+            if self.move(direction):
+                self.add_new_tile()
+                self.update_ui()
+                if not self.can_move():
+                    self.end_game()
 
-# Show all cards at the start
-screen.fill(BLACK)
-for card in cards:
-    card.revealed = True
-    card.draw(screen)
-screen.blit(font.render("Memorize the pairs ", True, WHITE), (10, 500))
-pygame.display.flip()
+    def move(self, direction):
+        moved = False
 
-# Wait for 5 seconds
-time.sleep(5)
+        def merge_line(line):
+            new_line = [num for num in line if num != 0]
+            for i in range(len(new_line) - 1):
+                if new_line[i] == new_line[i + 1]:
+                    new_line[i] *= 2
+                    self.score += new_line[i]
+                    new_line[i + 1] = 0
+            new_line = [num for num in new_line if num != 0]
+            return new_line + [0] * (4 - len(new_line))
 
-# Hide all cards after the initial reveal
-for card in cards:
-    card.revealed = False
+        if direction in ("Up", "Down"):
+            for c in range(4):
+                line = [self.board[r][c] for r in range(4)]
+                if direction == "Down":
+                    line.reverse()
+                merged = merge_line(line)
+                if direction == "Down":
+                    merged.reverse()
+                for r in range(4):
+                    if self.board[r][c] != merged[r]:
+                        moved = True
+                    self.board[r][c] = merged[r]
+        elif direction in ("Left", "Right"):
+            for r in range(4):
+                line = self.board[r][:]
+                if direction == "Right":
+                    line.reverse()
+                merged = merge_line(line)
+                if direction == "Right":
+                    merged.reverse()
+                if self.board[r] != merged:
+                    moved = True
+                self.board[r] = merged
+        return moved
 
-# Main game loop
-while running:
-    screen.fill(BLACK)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            if len(revealed_cards) < 2:
-                for card in cards:
-                    if card.rect.collidepoint(event.pos) and not card.revealed and not card.matched:
-                        card.revealed = True
-                        revealed_cards.append(card)
-                        if len(revealed_cards) == 2:
-                            attempts += 1
+    def can_move(self):
+        for r in range(4):
+            for c in range(4):
+                if self.board[r][c] == 0:
+                    return True
+                if c < 3 and self.board[r][c] == self.board[r][c + 1]:
+                    return True
+                if r < 3 and self.board[r][c] == self.board[r + 1][c]:
+                    return True
+        return False
 
-    # Check for match after two cards are revealed
-    if len(revealed_cards) == 2:
-        pygame.time.wait(500)
-        if revealed_cards[0].symbol == revealed_cards[1].symbol:
-            revealed_cards[0].matched = True
-            revealed_cards[1].matched = True
-            matches += 1
-        else:
-            revealed_cards[0].revealed = False
-            revealed_cards[1].revealed = False
-        revealed_cards = []  # Reset revealed cards
+    def end_game(self):
+        self.game_over_label = tk.Label(self.main_frame, text="Game Over!", font=("Helvetica", 24), fg="red", bg="black")
+        self.game_over_label.grid(row=4, column=0, columnspan=4)
 
-    # Draw cards
-    for card in cards:
-        card.draw(screen)
+        retry_button = tk.Button(self.main_frame, text="Retry", font=("Helvetica", 16), command=self.retry_game)
+        retry_button.grid(row=5, column=0, columnspan=4, pady=10)
 
-    # Display match count
-    font = pygame.font.Font(None, 36)
-    text = font.render(f"Matches: {matches}  Attempts: {attempts}", True, WHITE)
-    screen.blit(text, (10, 500))
+        self.window.unbind("<Key>")
 
-    # Check for win
-    if matches == 8:
-        font = pygame.font.Font(None, 74)
-        win_text = font.render("You Win!", True, RED)
-        screen.blit(win_text, (WIDTH // 2 - 100, HEIGHT // 2 - 50))
+    def retry_game(self):
+        # Remove the "Game Over" label before restarting
+        if self.game_over_label:
+            self.game_over_label.grid_forget()
+            self.game_over_label = None  # Reset the reference to the label
 
-    pygame.display.flip()
-    clock.tick(30)
+        self.board = [[0] * 4 for _ in range(4)]
+        self.score = 0
+        self.add_new_tile()
+        self.add_new_tile()
+        self.update_ui()
+        self.window.bind("<Key>", self.handle_keypress)
 
-pygame.quit()
+
+if __name__ == "__main__":
+    Game2048()
