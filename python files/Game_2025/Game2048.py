@@ -5,11 +5,12 @@ import pygame
 
 class Game2048:
     def __init__(self):
-        # Initialize Pygame for music
+        # Initialize Pygame for music and sound effects
         pygame.mixer.init()
-        pygame.mixer.music.load("Memories-of-Spring(chosic.com).mp3")  # Make sure to have a lo-fi music file
+        pygame.mixer.music.load("Memories-of-Spring(chosic.com).mp3")  # Background music file
         pygame.mixer.music.play(-1, 0.0)  # Loop the music infinitely
 
+        self.game_over_sound = pygame.mixer.Sound("game_over_sound.mp3")  # Game Over sound effect
         self.window = tk.Tk()
         self.window.title("2048 Game")
         self.board = [[0] * 4 for _ in range(4)]
@@ -140,6 +141,10 @@ class Game2048:
         return False
 
     def end_game(self):
+        # Stop the background music and play the game over sound
+        pygame.mixer.music.stop()
+        self.game_over_sound.play()  # Play the game over sound effect
+
         # Update high score if the current score is higher than the stored high score
         if self.score > self.high_score:
             self.high_score = self.score
@@ -169,6 +174,9 @@ class Game2048:
         self.add_new_tile()
         self.add_new_tile()
         self.update_ui()
+
+        # Restart the background music when retrying
+        pygame.mixer.music.play(-1, 0.0)  # Loop the music infinitely
         self.window.bind("<Key>", self.handle_keypress)
 
 
