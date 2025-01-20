@@ -16,6 +16,7 @@ class Game2048:
         self.grid_cells = []
         self.score = 0
         self.game_over_label = None  # Store the Game Over label reference
+        self.retry_button = None  # Store the Retry button reference
 
         self.initialize_ui()
         self.add_new_tile()
@@ -136,16 +137,22 @@ class Game2048:
         self.game_over_label = tk.Label(self.main_frame, text="Game Over!", font=("Helvetica", 24), fg="red", bg="black")
         self.game_over_label.grid(row=4, column=0, columnspan=4)
 
-        retry_button = tk.Button(self.main_frame, text="Retry", font=("Helvetica", 16), command=self.retry_game)
-        retry_button.grid(row=5, column=0, columnspan=4, pady=10)
+        # Create and display the Retry button only if the game is over
+        if not self.retry_button:
+            self.retry_button = tk.Button(self.main_frame, text="Retry", font=("Helvetica", 16), command=self.retry_game)
+            self.retry_button.grid(row=5, column=0, columnspan=4, pady=10)
 
         self.window.unbind("<Key>")
 
     def retry_game(self):
-        # Remove the "Game Over" label before restarting
+        # Remove the "Game Over" label and Retry button before restarting
         if self.game_over_label:
             self.game_over_label.grid_forget()
             self.game_over_label = None  # Reset the reference to the label
+
+        if self.retry_button:
+            self.retry_button.grid_forget()  # Hide the Retry button
+            self.retry_button = None  # Reset the reference to the button
 
         self.board = [[0] * 4 for _ in range(4)]
         self.score = 0
