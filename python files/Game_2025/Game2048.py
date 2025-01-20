@@ -15,6 +15,7 @@ class Game2048:
         self.board = [[0] * 4 for _ in range(4)]
         self.grid_cells = []
         self.score = 0
+        self.high_score = 0  # Store the high score from previous rounds
         self.game_over_label = None  # Store the Game Over label reference
         self.retry_button = None  # Store the Retry button reference
 
@@ -45,6 +46,10 @@ class Game2048:
         self.score_label = tk.Label(self.window, text=f"Score: {self.score}", font=("Helvetica", 16))
         self.score_label.grid(row=1, column=0, pady=10)
 
+        # High score label
+        self.high_score_label = tk.Label(self.window, text=f"High Score: {self.high_score}", font=("Helvetica", 16))
+        self.high_score_label.grid(row=2, column=0, pady=10)
+
     def add_new_tile(self):
         empty_cells = [(r, c) for r in range(4) for c in range(4) if self.board[r][c] == 0]
         if empty_cells:
@@ -57,6 +62,7 @@ class Game2048:
                 value = self.board[r][c]
                 self.grid_cells[r][c].config(text=f"{value}" if value != 0 else "", bg=self.get_cell_color(value))
         self.score_label.config(text=f"Score: {self.score}")
+        self.high_score_label.config(text=f"High Score: {self.high_score}")
 
     def get_cell_color(self, value):
         colors = {
@@ -134,6 +140,10 @@ class Game2048:
         return False
 
     def end_game(self):
+        # Update high score if the current score is higher than the stored high score
+        if self.score > self.high_score:
+            self.high_score = self.score
+
         self.game_over_label = tk.Label(self.main_frame, text="Game Over!", font=("Helvetica", 24), fg="red", bg="black")
         self.game_over_label.grid(row=4, column=0, columnspan=4)
 
