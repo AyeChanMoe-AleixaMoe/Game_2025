@@ -1,13 +1,21 @@
 import tkinter as tk
 import random
+import pygame
+
 
 class Game2048:
     def __init__(self):
+        # Initialize Pygame for music
+        pygame.mixer.init()
+        pygame.mixer.music.load("Memories-of-Spring(chosic.com).mp3")  # Make sure to have a lo-fi music file
+        pygame.mixer.music.play(-1, 0.0)  # Loop the music infinitely
+
         self.window = tk.Tk()
         self.window.title("2048 Game")
         self.board = [[0] * 4 for _ in range(4)]
         self.grid_cells = []
         self.score = 0
+        self.game_over_label = None  # Store the Game Over label reference
 
         self.initialize_ui()
         self.add_new_tile()
@@ -26,7 +34,8 @@ class Game2048:
         for r in range(4):
             row_cells = []
             for c in range(4):
-                cell = tk.Label(self.main_frame, text="", bg="lightgrey", font=("Helvetica", 24), width=4, height=2, borderwidth=2, relief="groove")
+                cell = tk.Label(self.main_frame, text="", bg="lightgrey", font=("Helvetica", 24), width=4, height=2,
+                                borderwidth=2, relief="groove")
                 cell.grid(row=r, column=c, padx=5, pady=5)
                 row_cells.append(cell)
             self.grid_cells.append(row_cells)
@@ -76,6 +85,7 @@ class Game2048:
 
     def move(self, direction):
         moved = False
+
         def merge_line(line):
             new_line = [num for num in line if num != 0]
             for i in range(len(new_line) - 1):
@@ -123,9 +133,27 @@ class Game2048:
         return False
 
     def end_game(self):
-        end_label = tk.Label(self.main_frame, text="Game Over!", font=("Helvetica", 24), fg="red", bg="black")
-        end_label.grid(row=4, column=0, columnspan=4)
+        self.game_over_label = tk.Label(self.main_frame, text="Game Over!", font=("Helvetica", 24), fg="red", bg="black")
+        self.game_over_label.grid(row=4, column=0, columnspan=4)
+
+        retry_button = tk.Button(self.main_frame, text="Retry", font=("Helvetica", 16), command=self.retry_game)
+        retry_button.grid(row=5, column=0, columnspan=4, pady=10)
+
         self.window.unbind("<Key>")
+
+    def retry_game(self):
+        # Remove the "Game Over" label before restarting
+        if self.game_over_label:
+            self.game_over_label.grid_forget()
+            self.game_over_label = None  # Reset the reference to the label
+
+        self.board = [[0] * 4 for _ in range(4)]
+        self.score = 0
+        self.add_new_tile()
+        self.add_new_tile()
+        self.update_ui()
+        self.window.bind("<Key>", self.handle_keypress)
+
 
 if __name__ == "__main__":
     Game2048()
